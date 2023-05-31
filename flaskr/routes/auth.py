@@ -41,13 +41,14 @@ def login():
             return 'Password is required.', 400
         db = get_db()
         cur = db.cursor()
-        cur.execute('SELECT username, password FROM user WHERE username = ?', (username,))
+        cur.execute('SELECT id, username, password FROM user WHERE username = ?', (username,))
         user = cur.fetchone()
         if not user:
             raise Exception(f"User {username} does not exist.")
-        if not check_password_hash(row[1], password):
+        if not check_password_hash(user['password'], password):
             raise Exception("Password is incorrect.")
-        session['user_id'] = user.id
+        g.user = user
+        session['user_id'] = user['id']
         return 'Login successful.', 200
     
 @bp.route('/logout', methods=['POST'])
@@ -58,7 +59,8 @@ def logout():
 def login_required(route):
     @functools.wraps(route)
     def wrapped_route(*args, **kwargs):
-        if g.user is None:
+        user_id = session.get('user_id')
+        if not user_id:
             return 'Unauthorized', 401
         return route(*args **kwargs)
     return wrapped_route

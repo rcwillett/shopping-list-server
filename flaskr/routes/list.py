@@ -60,3 +60,14 @@ def update_item():
     cursor = db.cursor()
     cursor.execute('UPDATE item SET name = ?, quantity = ? WHERE id = ?', (name, quantity, item_id))
     return 'Item updated successfully.', 200
+
+@bp.route('/purchased', methods=['POST'])
+@login_required
+def purchased_item():
+    item_id = request.json['item_id']
+    if not item_id:
+        return 'Item ID is required.', 400
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute('UPDATE item SET purchased = 1 WHERE id = ?', (item_id,))
+    return 'Item updated successfully.', 200

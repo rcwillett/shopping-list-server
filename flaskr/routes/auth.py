@@ -1,6 +1,6 @@
 import functools
 from flask import (
-    Blueprint, g, request, session
+    Blueprint, request, session
 )
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -47,8 +47,8 @@ def login():
             raise Exception(f"User {username} does not exist.")
         if not check_password_hash(user['password'], password):
             raise Exception("Password is incorrect.")
-        g.user = user
         session['user_id'] = user['id']
+        session.modified = True
         return 'Login successful.', 200
     
 @bp.route('/logout', methods=['POST'])
@@ -62,5 +62,5 @@ def login_required(route):
         user_id = session.get('user_id')
         if not user_id:
             return 'Unauthorized', 401
-        return route(*args **kwargs)
+        return route(*args, **kwargs)
     return wrapped_route

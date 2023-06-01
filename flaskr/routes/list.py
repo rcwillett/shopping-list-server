@@ -3,6 +3,7 @@ from flask import (
     request,
     session
 )
+import json
 from flaskr.db import get_db
 from .auth import login_required
 
@@ -11,12 +12,16 @@ bp = Blueprint('list', __name__, url_prefix='/list')
 @bp.route('/getitems', methods=['GET'])
 @login_required
 def get_items():
-    userid = session['user_id']
+    userid = int(session.get('user_id'))
     if not userid:
         return 'User ID is required.', 400
     db = get_db()
-    items = db.execute('SELECT id, name, quantity, purchased FROM item WHERE user_id = ?', (userid,)).fetchall()
-    return {'items': items}, 200
+    cur = db.cursor()
+    items = cur.execute('SELECT id, name, quantity, purchased FROM item WHERE user_id = ?', (userid,)).fetchall()
+    db.commit()
+    results = [dict((cur.description[i][0], value) for i, value in enumerate(row)) for row in items]
+    json_output = json.dumps(results)
+    return json_output, 200
 
 @bp.route('/create', methods=['POST'])
 @login_required
@@ -31,6 +36,7 @@ def create_item():
     db = get_db()
     cursor = db.cursor()
     cursor.execute('INSERT INTO item (user_id, name, quantity) VALUES (?, ?, ?)', (user_id, name, quantity))
+    db.commit()
     return { 'item_id': cursor.lastrowid }, 200
 
 @bp.route('/remove', methods=['POST'])
@@ -42,6 +48,7 @@ def remove_item():
     db = get_db()
     cursor = db.cursor()
     cursor.execute('DELETE FROM item WHERE id = ?', (item_id,))
+    db.commit()
     return 'Item removed successfully.', 200
 
 @bp.route('/update', methods=['POST'])
@@ -59,6 +66,7 @@ def update_item():
     db = get_db()
     cursor = db.cursor()
     cursor.execute('UPDATE item SET name = ?, quantity = ? WHERE id = ?', (name, quantity, item_id))
+    db.commit()
     return 'Item updated successfully.', 200
 
 @bp.route('/purchased', methods=['POST'])
@@ -70,4 +78,5 @@ def purchased_item():
     db = get_db()
     cursor = db.cursor()
     cursor.execute('UPDATE item SET purchased = 1 WHERE id = ?', (item_id,))
+    db.commit()
     return 'Item updated successfully.', 200

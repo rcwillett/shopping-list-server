@@ -1,0 +1,54 @@
+name: Docker Image CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'
+        required: true
+        default: 'warning'
+        type: choice
+        options:
+        - info
+        - warning
+        - debug
+  push:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+    name: Build Image
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: checkout-code
+      uses: actions/checkout@v3
+      
+    - name: Configure AWS Credentials For GitHub Actions
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-region: us-east-1
+        
+    - name: Amazon ECR "Login" Action for GitHub Actions
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+      with:
+        registries: 192092292435.dkr.ecr.us-east-1.amazonaws.com
+        registry-type: private
+        # Proxy to use for the AWS SDK agent.
+        # http-proxy: # optional
+        
+    - name: Build and push Docker images
+      uses: docker/build-push-action@v4.0.0
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: shopping-list
+        IMAGE_TAG: latest
+      with:
+        # Push is a shorthand for --output=type=registry
+        push: true
+        # List of tags
+        tags: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG

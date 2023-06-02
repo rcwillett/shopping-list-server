@@ -4,7 +4,7 @@ from flask import (
 )
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from flaskr.db import get_db
+from flaskr.services import sqlite
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -17,7 +17,7 @@ def register():
             return 'Username is required.', 400
         if not password:
             return 'Password is required.', 400
-        db = get_db()
+        db = sqlite.get_db()
         try:
             db.execute(
                 "INSERT INTO user (username, password) VALUES (?, ?)",
@@ -39,7 +39,7 @@ def login():
             return 'Username is required.', 400
         if not password:
             return 'Password is required.', 400
-        db = get_db()
+        db = sqlite.get_db()
         cur = db.cursor()
         cur.execute('SELECT id, username, password FROM user WHERE username = ?', (username,))
         user = cur.fetchone()
@@ -55,12 +55,3 @@ def login():
 def logout():
     session.clear()
     return 'Logout successful.', 200
-
-def login_required(route):
-    @functools.wraps(route)
-    def wrapped_route(*args, **kwargs):
-        user_id = session.get('user_id')
-        if not user_id:
-            return 'Unauthorized', 401
-        return route(*args, **kwargs)
-    return wrapped_route

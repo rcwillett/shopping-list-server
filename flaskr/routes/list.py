@@ -4,18 +4,17 @@ from flask import (
     session
 )
 import json
-from flaskr.db import get_db
-from .auth import login_required
+from flaskr.services import auth, sqlite
 
 bp = Blueprint('list', __name__, url_prefix='/list')
 
 @bp.route('/getitems', methods=['GET'])
-@login_required
+@auth.login_required
 def get_items():
     userid = int(session.get('user_id'))
     if not userid:
         return 'User ID is required.', 400
-    db = get_db()
+    db = sqlite.get_db()
     cur = db.cursor()
     items = cur.execute('SELECT id, name, quantity, purchased FROM item WHERE user_id = ?', (userid,)).fetchall()
     db.commit()
@@ -24,7 +23,7 @@ def get_items():
     return json_output, 200
 
 @bp.route('/create', methods=['POST'])
-@login_required
+@auth.login_required
 def create_item():
     user_id = session['user_id']
     name = request.json['name']
@@ -33,26 +32,26 @@ def create_item():
         return 'Name is required.', 400
     if not quantity:
         return 'Quantity is required.', 400
-    db = get_db()
+    db = sqlite.get_db()
     cursor = db.cursor()
     cursor.execute('INSERT INTO item (user_id, name, quantity) VALUES (?, ?, ?)', (user_id, name, quantity))
     db.commit()
     return { 'item_id': cursor.lastrowid }, 200
 
 @bp.route('/remove', methods=['POST'])
-@login_required
+@auth.login_required
 def remove_item():
     item_id = request.json['item_id']
     if not item_id:
         return 'Item ID is required.', 400
-    db = get_db()
+    db = sqlite.get_db()
     cursor = db.cursor()
     cursor.execute('DELETE FROM item WHERE id = ?', (item_id,))
     db.commit()
     return 'Item removed successfully.', 200
 
 @bp.route('/update', methods=['POST'])
-@login_required
+@auth.login_required
 def update_item():
     item_id = request.json['item_id']
     name = request.json['name']
@@ -63,19 +62,19 @@ def update_item():
         return 'Name is required.', 400
     if not quantity:
         return 'Quantity is required.', 400
-    db = get_db()
+    db = sqlite.get_db()
     cursor = db.cursor()
     cursor.execute('UPDATE item SET name = ?, quantity = ? WHERE id = ?', (name, quantity, item_id))
     db.commit()
     return 'Item updated successfully.', 200
 
 @bp.route('/purchased', methods=['POST'])
-@login_required
+@auth.login_required
 def purchased_item():
     item_id = request.json['item_id']
     if not item_id:
         return 'Item ID is required.', 400
-    db = get_db()
+    db = sqlite.get_db()
     cursor = db.cursor()
     cursor.execute('UPDATE item SET purchased = 1 WHERE id = ?', (item_id,))
     db.commit()

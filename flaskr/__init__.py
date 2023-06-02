@@ -3,7 +3,7 @@ from flask import Flask
 from flask_cors import CORS
 
 from .routes import auth, list
-from . import db
+from .services import sqlite
 
 def create_app(test_config=None):
     # create and configure the app
@@ -35,7 +35,7 @@ def create_app(test_config=None):
     def hello():
         return 'Healthy!'
 
-    db.init_app(app)
+    sqlite.init_app(app)
 
     app.register_blueprint(auth.bp)
 
